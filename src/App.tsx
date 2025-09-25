@@ -6,7 +6,6 @@ import {
   AlertTriangle, 
   Truck, 
   BarChart3,
-  MapPin,
   Eye,
   Activity,
   Zap,
@@ -20,8 +19,9 @@ import StructuralMonitoring from './components/StructuralMonitoring';
 import SafetyHazards from './components/SafetyHazards';
 import FleetCoordination from './components/FleetCoordination';
 import OptimizationDashboard from './components/OptimizationDashboard';
+import SimulationModule from "./components/SimulationModule";
 
-type ActiveModule = 'navigation' | 'mineral' | 'structural' | 'safety' | 'fleet' | 'optimization';
+type ActiveModule = 'navigation' | 'mineral' | 'structural' | 'safety' | 'fleet' | 'optimization' | 'simulation';
 
 function App() {
   const [activeModule, setActiveModule] = useState<ActiveModule>('navigation');
@@ -39,6 +39,7 @@ function App() {
     { id: 'safety', name: 'Safety Hazards', icon: AlertTriangle, color: 'text-red-400' },
     { id: 'fleet', name: 'Fleet Coordination', icon: Truck, color: 'text-yellow-400' },
     { id: 'optimization', name: 'Process Optimization', icon: BarChart3, color: 'text-cyan-400' },
+    { id: 'simulation', name: 'Simulation Module', icon: Activity, color: 'text-pink-400' },
   ];
 
   const renderActiveModule = () => {
@@ -49,6 +50,7 @@ function App() {
       case 'safety': return <SafetyHazards />;
       case 'fleet': return <FleetCoordination />;
       case 'optimization': return <OptimizationDashboard />;
+      case 'simulation': return <SimulationModule />; // ← Simulation Module added
       default: return <NavigationSystem />;
     }
   };

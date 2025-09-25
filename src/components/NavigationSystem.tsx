@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Navigation, Compass, Route, Zap, Target } from 'lucide-react';
+import { api } from '../services/api';
 
 interface Position {
   x: number;
@@ -15,7 +16,7 @@ interface Tunnel {
 }
 
 // Static data moved outside component to prevent recreation
-const TUNNELS: Tunnel[] = [
+const FALLBACK_TUNNELS: Tunnel[] = [
   { id: 'T-001', name: 'Main Shaft A', status: 'active', confidence: 98 },
   { id: 'T-002', name: 'North Tunnel B', status: 'mapped', confidence: 95 },
   { id: 'T-003', name: 'South Extraction', status: 'active', confidence: 92 },
@@ -27,20 +28,45 @@ const NavigationSystem: React.FC = () => {
   const [currentPosition, setCurrentPosition] = useState<Position>({ x: 150, y: 200, z: -45 });
   const [mappingProgress, setMappingProgress] = useState(67);
   const [activeVehicles, setActiveVehicles] = useState(5);
+  const [tunnels, setTunnels] = useState<Tunnel[]>(FALLBACK_TUNNELS);
   const [animationOffset, setAnimationOffset] = useState(0);
 
   useEffect(() => {
+    // Poll animation/local movement
     const interval = setInterval(() => {
       setCurrentPosition(prev => ({
         x: prev.x + (Math.random() - 0.5) * 2,
         y: prev.y + (Math.random() - 0.5) * 2,
         z: prev.z + (Math.random() - 0.5) * 0.5,
       }));
-      setMappingProgress(prev => Math.min(100, prev + Math.random() * 0.1));
       setAnimationOffset(prev => prev + 1);
     }, 1000);
 
-    return () => clearInterval(interval);
+    // Fetch backend data
+    const fetchData = async () => {
+      try {
+        const [status, serverTunnels] = await Promise.all([
+          api.navigation.getStatus(),
+          api.navigation.getTunnels(),
+        ]);
+        if (status) {
+          setMappingProgress(status.mappingProgress);
+          setActiveVehicles(status.activeVehicles);
+        }
+        if (serverTunnels && Array.isArray(serverTunnels) && serverTunnels.length) {
+          setTunnels(serverTunnels as Tunnel[]);
+        }
+      } catch (e) {
+        // Keep fallbacks on error
+      }
+    };
+    fetchData();
+    const poll = setInterval(fetchData, 5000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(poll);
+    };
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -221,7 +247,7 @@ const NavigationSystem: React.FC = () => {
           <h3 className="font-semibold text-white">Tunnel Network Status</h3>
         </div>
         <div className="grid grid-cols-5 gap-4">
-          {TUNNELS.map((tunnel) => (
+          {tunnels.map((tunnel) => (
             <div key={tunnel.id} className="bg-gray-700 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-gray-400">{tunnel.id}</span>
